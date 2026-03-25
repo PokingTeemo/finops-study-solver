@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FinOps Study Solver</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="container">
+    <h1>FinOps Study Solver</h1>
+    <p class="subtitle">회사 정보 + 배경 + main.tf + metrics.json + cost_report.json을 넣으면 제출용 분석 초안과 GPT 프롬프트를 생성합니다.</p>
+  </header>
+
+  <main class="container grid">
+    <section class="card">
+      <h2>1. 문제 입력</h2>
+      <div class="form-grid">
+        <label>회사명<input id="companyName" type="text" placeholder="QuickMart" /></label>
+        <label>업종<input id="industry" type="text" placeholder="이커머스" /></label>
+        <label>직원 수<input id="employees" type="number" placeholder="148" /></label>
+        <label>성장 단계<input id="growthStage" type="text" placeholder="성장기" /></label>
+        <label>클라우드 성숙도<input id="cloudMaturity" type="text" placeholder="medium" /></label>
+        <label>FinOps 전담팀<input id="finopsTeam" type="text" placeholder="없음" /></label>
+        <label>월 클라우드 비용(USD)<input id="monthlyCloudCost" type="number" step="0.01" placeholder="42637.37" /></label>
+      </div>
+      <label class="block-label">배경
+        <textarea id="background" rows="4" placeholder="매출이 빠르게 증가하면서 클라우드 비용도 급등..."></textarea>
+      </label>
+      <label class="block-label">과제
+        <textarea id="task" rows="3">아래 제공된 자료를 분석하여 비용 낭비 요소를 찾고, 구체적인 개선 방안과 예상 절감액을 제시하세요.</textarea>
+      </label>
+      <label class="block-label">제출 형식 메모
+        <textarea id="submitFormat" rows="4">Problem Identification / Root Cause / Proposed Solution / Estimated Monthly Savings (USD) 형식으로 답변하고, 필요 시 Optimized main.tf 와 Markdown Report도 함께 생성</textarea>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>2. 파일 업로드</h2>
+      <div class="upload-grid">
+        <label class="upload-box">main.tf
+          <input id="mainTfFile" type="file" accept=".tf,.txt" />
+        </label>
+        <label class="upload-box">metrics.json
+          <input id="metricsFile" type="file" accept=".json" />
+        </label>
+        <label class="upload-box">cost_report.json
+          <input id="costFile" type="file" accept=".json" />
+        </label>
+      </div>
+      <div class="button-row">
+        <button id="loadExampleBtn" type="button">QuickMart 예시 불러오기</button>
+        <button id="analyzeBtn" type="button" class="primary">로컬 분석 실행</button>
+      </div>
+      <div id="fileStatus" class="status"></div>
+    </section>
+
+    <section class="card full-span">
+      <h2>3. 요약 미리보기</h2>
+      <div class="summary-grid">
+        <div>
+          <h3>Terraform 리소스 요약</h3>
+          <pre id="terraformSummary" class="pre-box">아직 분석 전입니다.</pre>
+        </div>
+        <div>
+          <h3>비용 리포트 요약</h3>
+          <pre id="costSummary" class="pre-box">아직 분석 전입니다.</pre>
+        </div>
+        <div>
+          <h3>메트릭 요약</h3>
+          <pre id="metricsSummary" class="pre-box">아직 분석 전입니다.</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>4. 비용 차트</h2>
+      <canvas id="costChart"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>5. 메트릭 차트</h2>
+      <canvas id="metricsChart"></canvas>
+    </section>
+
+    <section class="card full-span">
+      <h2>6. 제출용 분석 초안</h2>
+      <textarea id="analysisDraft" rows="18" class="mono"></textarea>
+      <div class="button-row">
+        <button id="copyAnalysisBtn" type="button">분석 복사</button>
+        <button id="downloadAnalysisBtn" type="button">analysis.md 다운로드</button>
+      </div>
+    </section>
+
+    <section class="card full-span">
+      <h2>7. Optimized main.tf 초안</h2>
+      <textarea id="optimizedTf" rows="18" class="mono"></textarea>
+      <div class="button-row">
+        <button id="copyTfBtn" type="button">Terraform 복사</button>
+        <button id="downloadTfBtn" type="button">optimized-main.tf 다운로드</button>
+      </div>
+    </section>
+
+    <section class="card full-span">
+      <h2>8. GPT 입력 프롬프트</h2>
+      <p class="helper">이 프롬프트를 그대로 ChatGPT나 추후 API에 전달하면 됩니다. 현재 버전은 비용 0원을 유지하기 위해 브라우저에서 프롬프트만 생성합니다.</p>
+      <textarea id="gptPrompt" rows="22" class="mono"></textarea>
+      <div class="button-row">
+        <button id="copyPromptBtn" type="button" class="primary">프롬프트 복사</button>
+        <button id="downloadPromptBtn" type="button">prompt.txt 다운로드</button>
+        <button id="downloadReportBtn" type="button">report.md 다운로드</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container footer">
+    <p>권장 운영 방식: GitHub Pages 정적 배포 + 브라우저 로컬 분석 + GPT 수동 호출</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
