@@ -718,14 +718,20 @@ function renderMetricsSummary(metrics) {
   els.metricsSummary.textContent = lines.join('\n');
 }
 
-function destroyChart(chart) {
+function destroyChart(chart, canvas) {
   if (chart && typeof chart.destroy === 'function') {
     chart.destroy();
+  }
+
+  if (canvas) {
+    canvas.removeAttribute('style');
+    canvas.width = canvas.clientWidth || 300;
+    canvas.height = canvas.parentElement?.clientHeight || 320;
   }
 }
 
 function renderCostChart(cost) {
-  destroyChart(state.charts.cost);
+  destroyChart(state.charts.cost, els.costChart);
   if (!cost || cost.months.length === 0 || typeof Chart === 'undefined') return;
 
   state.charts.cost = new Chart(els.costChart, {
@@ -746,7 +752,7 @@ function renderCostChart(cost) {
 }
 
 function renderMetricsChart(metrics) {
-  destroyChart(state.charts.metrics);
+  destroyChart(state.charts.metrics, els.metricsChart);
   if (!metrics || metrics.records.length === 0 || typeof Chart === 'undefined') return;
 
   const preferred = metrics.records.find((r) => r.metric.toLowerCase().includes('cpu')) || metrics.records[0];

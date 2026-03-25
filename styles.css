@@ -153,13 +153,31 @@ button.primary {
   color: var(--good);
 }
 
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  min-height: 320px;
+  max-height: 320px;
+}
+
 canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100%;
   background: #ffffff;
   border-radius: 12px;
   padding: 8px;
 }
 
 @media (max-width: 900px) {
+  .chart-wrap {
+    height: 280px;
+    min-height: 280px;
+    max-height: 280px;
+  }
+
   .grid,
   .summary-grid,
   .form-grid,
