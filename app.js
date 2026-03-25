@@ -169,14 +169,14 @@ const els = {
   loadExampleBtn: document.getElementById('loadExampleBtn'),
   analyzeBtn: document.getElementById('analyzeBtn'),
   fileStatus: document.getElementById('fileStatus'),
-  terraformSummary: document.getElementById('terraformSummary'),
-  costSummary: document.getElementById('costSummary'),
-  metricsSummary: document.getElementById('metricsSummary'),
+  summaryMarkdown: document.getElementById('summaryMarkdown'),
   analysisDraft: document.getElementById('analysisDraft'),
   optimizedTf: document.getElementById('optimizedTf'),
   gptPrompt: document.getElementById('gptPrompt'),
   costChart: document.getElementById('costChart'),
   metricsChart: document.getElementById('metricsChart'),
+  copySummaryBtn: document.getElementById('copySummaryBtn'),
+  downloadSummaryBtn: document.getElementById('downloadSummaryBtn'),
   copyAnalysisBtn: document.getElementById('copyAnalysisBtn'),
   downloadAnalysisBtn: document.getElementById('downloadAnalysisBtn'),
   copyTfBtn: document.getElementById('copyTfBtn'),
@@ -668,10 +668,9 @@ function buildGptPrompt(form, terraform, metrics, cost, findings, analysisText, 
 }, null, 2)}\n\n[Terraform 요약]\n${JSON.stringify(terraform, null, 2)}\n\n[Metrics 요약]\n${JSON.stringify(metrics, null, 2)}\n\n[Cost Report 요약]\n${JSON.stringify(cost, null, 2)}\n\n[로컬 휴리스틱 결과]\n${JSON.stringify({ findings, estimatedSavings }, null, 2)}\n\n[현재 로컬 초안]\n${analysisText}\n\n[현재 Optimized main.tf 초안]\n${optimizedTf}\n\n[현재 Report Markdown 초안]\n${reportMd}\n\n이제 최종 JSON만 출력하세요.`;
 }
 
-function renderTerraformSummary(terraform) {
+function buildTerraformSummary(terraform) {
   if (!terraform) {
-    els.terraformSummary.textContent = 'Terraform 데이터가 없습니다.';
-    return;
+    return 'Terraform 데이터가 없습니다.';
   }
 
   const instanceTypes = countOccurrences(terraform.instances, 'instance_type');
@@ -684,13 +683,12 @@ function renderTerraformSummary(terraform) {
     `EBS 목록: ${terraform.ebsVolumes.map((v) => `${v.name}(${v.size}GB/${v.volume_type})`).join(', ') || '-'}`,
   ];
 
-  els.terraformSummary.textContent = lines.join('\n');
+  return lines.join('\n');
 }
 
-function renderCostSummary(cost) {
+function buildCostSummary(cost) {
   if (!cost) {
-    els.costSummary.textContent = '비용 데이터가 없습니다.';
-    return;
+    return '비용 데이터가 없습니다.';
   }
 
   const lines = [
@@ -700,13 +698,12 @@ function renderCostSummary(cost) {
     ...cost.months.map((m) => `${m.month}: total=$${m.total.toFixed(2)}, waste=$${m.waste.toFixed(2)}`),
   ];
 
-  els.costSummary.textContent = lines.join('\n');
+  return lines.join('\n');
 }
 
-function renderMetricsSummary(metrics) {
+function buildMetricsSummary(metrics) {
   if (!metrics) {
-    els.metricsSummary.textContent = '메트릭 데이터가 없습니다.';
-    return;
+    return '메트릭 데이터가 없습니다.';
   }
 
   const resourceMap = groupMetricsByResource(metrics.records);
@@ -715,7 +712,33 @@ function renderMetricsSummary(metrics) {
     const compact = records.map((r) => `${r.metric}:avg=${r.average.toFixed(2)}`).join(', ');
     lines.push(`${resource} -> ${compact}`);
   });
-  els.metricsSummary.textContent = lines.join('\n');
+  return lines.join('\n');
+}
+
+function buildSummaryMarkdown(terraform, cost, metrics) {
+  return [
+    '# Summary Preview',
+    '',
+    '## Terraform 리소스 요약',
+    '```text',
+    buildTerraformSummary(terraform),
+    '```',
+    '',
+    '## 비용 리포트 요약',
+    '```text',
+    buildCostSummary(cost),
+    '```',
+    '',
+    '## 메트릭 요약',
+    '```text',
+    buildMetricsSummary(metrics),
+    '```',
+    ''
+  ].join('\n');
+}
+
+function renderSummaryMarkdown(terraform, cost, metrics) {
+  els.summaryMarkdown.value = buildSummaryMarkdown(terraform, cost, metrics);
 }
 
 function destroyChart(chart, canvas) {
@@ -828,9 +851,7 @@ function runAnalysis() {
   state.parsed.cost = normalizeCostReport(state.files.costJson || {});
   state.parsed.findings = analyze(state.parsed.terraform, state.parsed.metrics, state.parsed.cost, form);
 
-  renderTerraformSummary(state.parsed.terraform);
-  renderCostSummary(state.parsed.cost);
-  renderMetricsSummary(state.parsed.metrics);
+  renderSummaryMarkdown(state.parsed.terraform, state.parsed.cost, state.parsed.metrics);
   renderCostChart(state.parsed.cost);
   renderMetricsChart(state.parsed.metrics);
 
@@ -849,6 +870,8 @@ els.analyzeBtn.addEventListener('click', async () => {
   runAnalysis();
 });
 
+els.copySummaryBtn.addEventListener('click', async () => copyText(els.summaryMarkdown.value));
+els.downloadSummaryBtn.addEventListener('click', () => downloadText('summary-preview.md', els.summaryMarkdown.value));
 els.copyAnalysisBtn.addEventListener('click', async () => copyText(els.analysisDraft.value));
 els.copyTfBtn.addEventListener('click', async () => copyText(els.optimizedTf.value));
 els.copyPromptBtn.addEventListener('click', async () => copyText(els.gptPrompt.value));

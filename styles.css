@@ -32,7 +32,7 @@ h1, h2, h3 {
   margin-top: 0;
 }
 
-.subtitle, .helper, .footer, .status {
+.subtitle, .helper, .status {
   color: var(--muted);
 }
 
@@ -145,9 +145,6 @@ button.primary {
   margin-top: 12px;
 }
 
-.footer {
-  padding-bottom: 28px;
-}
 
 .status.good {
   color: var(--good);
