@@ -1,4 +1,9 @@
 const state = {
+  uploadedFiles: {
+    main: null,
+    metrics: null,
+    cost: null,
+  },
   files: {
     mainTfText: '',
     metricsJson: null,
@@ -166,6 +171,9 @@ const els = {
   mainTfFile: document.getElementById('mainTfFile'),
   metricsFile: document.getElementById('metricsFile'),
   costFile: document.getElementById('costFile'),
+  mainTfFileName: document.getElementById('mainTfFileName'),
+  metricsFileName: document.getElementById('metricsFileName'),
+  costFileName: document.getElementById('costFileName'),
   loadExampleBtn: document.getElementById('loadExampleBtn'),
   analyzeBtn: document.getElementById('analyzeBtn'),
   fileStatus: document.getElementById('fileStatus'),
@@ -189,6 +197,30 @@ const els = {
 function setStatus(message, good = false) {
   els.fileStatus.textContent = message;
   els.fileStatus.className = good ? 'status good' : 'status';
+}
+
+function setFileLabel(role, message) {
+  const map = {
+    main: els.mainTfFileName,
+    metrics: els.metricsFileName,
+    cost: els.costFileName,
+  };
+
+  if (map[role]) {
+    map[role].textContent = message;
+  }
+}
+
+function syncSelectedFilesFromInputs() {
+  state.uploadedFiles.main = els.mainTfFile?.files?.[0] || state.uploadedFiles.main;
+  state.uploadedFiles.metrics = els.metricsFile?.files?.[0] || state.uploadedFiles.metrics;
+  state.uploadedFiles.cost = els.costFile?.files?.[0] || state.uploadedFiles.cost;
+}
+
+function reflectSelectedFiles() {
+  setFileLabel('main', state.uploadedFiles.main ? state.uploadedFiles.main.name : '선택된 파일 없음');
+  setFileLabel('metrics', state.uploadedFiles.metrics ? state.uploadedFiles.metrics.name : '선택된 파일 없음');
+  setFileLabel('cost', state.uploadedFiles.cost ? state.uploadedFiles.cost.name : '선택된 파일 없음');
 }
 
 function getFormData() {
@@ -810,24 +842,52 @@ async function copyText(text) {
 }
 
 async function handleFiles() {
+  syncSelectedFilesFromInputs();
+  reflectSelectedFiles();
+
   const status = [];
+  const warnings = [];
 
-  if (els.mainTfFile.files[0]) {
-    state.files.mainTfText = await readFileAsText(els.mainTfFile.files[0]);
+  if (state.uploadedFiles.main) {
+    state.files.mainTfText = await readFileAsText(state.uploadedFiles.main);
     status.push(`main.tf loaded`);
-  }
-  if (els.metricsFile.files[0]) {
-    const text = await readFileAsText(els.metricsFile.files[0]);
-    state.files.metricsJson = tryParseJson(text);
-    status.push(`metrics.json loaded`);
-  }
-  if (els.costFile.files[0]) {
-    const text = await readFileAsText(els.costFile.files[0]);
-    state.files.costJson = tryParseJson(text);
-    status.push(`cost_report.json loaded`);
+  } else if (!state.files.mainTfText) {
+    warnings.push('main.tf 없음');
   }
 
-  setStatus(status.length ? status.join(' / ') : '업로드된 파일이 없습니다.', status.length > 0);
+  if (state.uploadedFiles.metrics) {
+    const text = await readFileAsText(state.uploadedFiles.metrics);
+    const parsed = tryParseJson(text);
+    if (parsed) {
+      state.files.metricsJson = parsed;
+      status.push(`metrics.json loaded`);
+    } else {
+      warnings.push('metrics.json 파싱 실패');
+    }
+  } else if (!state.files.metricsJson) {
+    warnings.push('metrics.json 없음');
+  }
+
+  if (state.uploadedFiles.cost) {
+    const text = await readFileAsText(state.uploadedFiles.cost);
+    const parsed = tryParseJson(text);
+    if (parsed) {
+      state.files.costJson = parsed;
+      status.push(`cost_report.json loaded`);
+    } else {
+      warnings.push('cost_report.json 파싱 실패');
+    }
+  } else if (!state.files.costJson) {
+    warnings.push('cost_report.json 없음');
+  }
+
+  if (status.length > 0) {
+    const suffix = warnings.length > 0 ? ` / ${warnings.join(' / ')}` : '';
+    setStatus(`${status.join(' / ')}${suffix}`, true);
+    return;
+  }
+
+  setStatus('업로드된 파일이 없습니다. 파일 선택 또는 드래그 앤 드롭으로 main.tf를 먼저 넣어주세요.');
 }
 
 function loadExample() {
@@ -835,6 +895,12 @@ function loadExample() {
   state.files.mainTfText = exampleData.mainTfText;
   state.files.metricsJson = exampleData.metricsJson;
   state.files.costJson = exampleData.costJson;
+  state.uploadedFiles.main = null;
+  state.uploadedFiles.metrics = null;
+  state.uploadedFiles.cost = null;
+  setFileLabel('main', '예시 데이터 사용 중');
+  setFileLabel('metrics', '예시 데이터 사용 중');
+  setFileLabel('cost', '예시 데이터 사용 중');
   setStatus('QuickMart 예시 데이터를 메모리에 로드했습니다.', true);
   runAnalysis();
 }
@@ -842,7 +908,7 @@ function loadExample() {
 function runAnalysis() {
   const form = getFormData();
   if (!state.files.mainTfText) {
-    setStatus('main.tf가 필요합니다. 예시를 불러오거나 파일을 업로드하세요.');
+    setStatus('main.tf가 필요합니다. 파일 선택 또는 드래그 앤 드롭 후 다시 분석하세요.');
     return;
   }
 
@@ -861,9 +927,41 @@ function runAnalysis() {
   setStatus(`분석 완료: 예상 절감액 $${state.parsed.findings.estimatedSavings}/month`, true);
 }
 
-els.mainTfFile.addEventListener('change', handleFiles);
-els.metricsFile.addEventListener('change', handleFiles);
-els.costFile.addEventListener('change', handleFiles);
+function registerFileInput(inputEl, role) {
+  inputEl.addEventListener('change', async () => {
+    state.uploadedFiles[role] = inputEl.files?.[0] || null;
+    await handleFiles();
+  });
+
+  const box = inputEl.closest('.upload-box');
+  if (!box) return;
+
+  ['dragenter', 'dragover'].forEach((eventName) => {
+    box.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      box.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'dragend', 'drop'].forEach((eventName) => {
+    box.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      box.classList.remove('dragover');
+    });
+  });
+
+  box.addEventListener('drop', async (event) => {
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    state.uploadedFiles[role] = file;
+    reflectSelectedFiles();
+    await handleFiles();
+  });
+}
+
+registerFileInput(els.mainTfFile, 'main');
+registerFileInput(els.metricsFile, 'metrics');
+registerFileInput(els.costFile, 'cost');
 els.loadExampleBtn.addEventListener('click', loadExample);
 els.analyzeBtn.addEventListener('click', async () => {
   await handleFiles();
@@ -882,6 +980,8 @@ els.downloadReportBtn.addEventListener('click', () => {
   const report = state.parsed.findings?.reportMd || buildReportMarkdown(getFormData(), state.parsed.terraform || { resources: [], instances: [], ebsVolumes: [] }, state.parsed.metrics || { records: [] }, state.parsed.cost || { months: [], avgWaste: 0 }, state.parsed.findings?.findings || [], state.parsed.findings?.estimatedSavings || 0);
   downloadText('report.md', report);
 });
+
+reflectSelectedFiles();
 
 setFormData({
   task: '아래 제공된 자료를 분석하여 비용 낭비 요소를 찾고, 구체적인 개선 방안과 예상 절감액을 제시하세요.',

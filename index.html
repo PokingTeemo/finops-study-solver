@@ -39,14 +39,23 @@
     <section class="card">
       <h2>2. 파일 업로드</h2>
       <div class="upload-grid">
-        <label class="upload-box">main.tf
+        <label class="upload-box" data-file-role="main">
+          <span class="upload-title">main.tf</span>
+          <span class="upload-desc">클릭 또는 드래그 앤 드롭</span>
           <input id="mainTfFile" type="file" accept=".tf,.txt" />
+          <span id="mainTfFileName" class="upload-file-name">선택된 파일 없음</span>
         </label>
-        <label class="upload-box">metrics.json
+        <label class="upload-box" data-file-role="metrics">
+          <span class="upload-title">metrics.json</span>
+          <span class="upload-desc">클릭 또는 드래그 앤 드롭</span>
           <input id="metricsFile" type="file" accept=".json" />
+          <span id="metricsFileName" class="upload-file-name">선택된 파일 없음</span>
         </label>
-        <label class="upload-box">cost_report.json
+        <label class="upload-box" data-file-role="cost">
+          <span class="upload-title">cost_report.json</span>
+          <span class="upload-desc">클릭 또는 드래그 앤 드롭</span>
           <input id="costFile" type="file" accept=".json" />
+          <span id="costFileName" class="upload-file-name">선택된 파일 없음</span>
         </label>
       </div>
       <div class="button-row">
