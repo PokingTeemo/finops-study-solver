@@ -1,7 +1,7 @@
 # FinOps Study Solver
 
 브라우저에서만 동작하는 정적 웹앱입니다.
-
+링크: https://pokingteemo.github.io/finops-study-solver/
 목표는 다음 입력을 받아 FinOps Study 제출 형식에 맞는 초안과 GPT 프롬프트를 만드는 것입니다.
 
 - 회사 정보
